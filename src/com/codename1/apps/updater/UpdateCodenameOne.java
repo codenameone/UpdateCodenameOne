@@ -46,6 +46,7 @@ public class UpdateCodenameOne {
     
     private static final long DAY = 24 * 60 * 60000;
     private final File PROP_FILE = new File(System.getProperty("user.home") + File.separator + ".codenameone" + File.separator + "UpdateStatus.properties");
+    private final File LOCK_FILE = new File(System.getProperty("user.home") + File.separator + ".codenameone" + File.separator + "UpdateStatus.lock");
     private final File UPDATER_JAR = new File(System.getProperty("user.home") + File.separator + ".codenameone" + File.separator + "UpdateCodenameOne.jar");
     
     private static final String KEY_JAVA_SE_JAR = "JavaSEJar";
@@ -172,6 +173,14 @@ public class UpdateCodenameOne {
     }
     
     private void runUpdate(File projectPath, boolean force) throws Exception {
+        // check that a lock file exists but also use a 20 minute timeout to ignore an old lock file
+        if(LOCK_FILE.exists() && LOCK_FILE.lastModified() < System.currentTimeMillis() + 20 * 60000) {
+            System.out.println("Update process in progress lock file exists at: " + LOCK_FILE.getAbsolutePath());
+            return;
+        }
+        LOCK_FILE.delete();
+        LOCK_FILE.createNewFile();
+        LOCK_FILE.deleteOnExit();
         Properties updateStatus = loadSystemUpdateStatus();
         String lastUpdate = updateStatus.getProperty("lastUpdate", "0");
         if(force || Long.parseLong(lastUpdate) < System.currentTimeMillis() - DAY) {

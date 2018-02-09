@@ -77,6 +77,7 @@
             tofile="../CodenameOne/IntelliJCodenameOneSupport/resources/files/UpdateCodenameOne.jar" />
         <copy file="${dist.jar}"
             tofile="../CodenameOne/Eclipse/workspace/CodenameOnePlugin/src/codenameoneplugin/UpdateCodenameOne.jar" />
+        <copy file="${dist.jar}" todir="/Users/shai/Dropbox/website/files/updates" />        
 
     </target>
 </project>

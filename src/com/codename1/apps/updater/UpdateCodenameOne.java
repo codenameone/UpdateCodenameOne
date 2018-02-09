@@ -23,6 +23,7 @@
 
 package com.codename1.apps.updater;
 
+import com.codename1.impl.javase.JavaSEPort;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,6 +34,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Properties;
+import java.util.prefs.Preferences;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /**
  * A tool meant to update the main files of a Codename One project if they need
@@ -48,6 +56,7 @@ public class UpdateCodenameOne {
     private final File PROP_FILE = new File(System.getProperty("user.home") + File.separator + ".codenameone" + File.separator + "UpdateStatus.properties");
     private final File LOCK_FILE = new File(System.getProperty("user.home") + File.separator + ".codenameone" + File.separator + "UpdateStatus.lock");
     private final File UPDATER_JAR = new File(System.getProperty("user.home") + File.separator + ".codenameone" + File.separator + "UpdateCodenameOne.jar");
+    private final File SKIN_DIR = new File(System.getProperty("user.home") + File.separator + ".codenameone");
     
     private static final String KEY_JAVA_SE_JAR = "JavaSEJar";
     private static final String KEY_BUILD_CLIENT = "CodeNameOneBuildClientJar";
@@ -65,6 +74,9 @@ public class UpdateCodenameOne {
         "guiBuilder"
     };
     
+    private static final String SKIN_BASE_URL = "https://www.codenameone.com/OTA";
+    private static final String SKIN_XML_URL = SKIN_BASE_URL + "/Skins.xml";
+    
     private static final String BASE_URL = "https://www.codenameone.com/files/updates/";
     private static final String[] URLS = {
         BASE_URL + "JavaSE.jar",
@@ -73,7 +85,7 @@ public class UpdateCodenameOne {
         BASE_URL + "CodenameOne.jar",
         BASE_URL + "CodenameOne_SRC.jar",
         BASE_URL + "designer_1.jar",
-        BASE_URL + "guibuilder_1.jar"
+        BASE_URL + "guibuilder.jar"
     };
     
     private static final String[] RELATIVE_PATHS = {
@@ -83,7 +95,7 @@ public class UpdateCodenameOne {
         "CodenameOne.jar",
         "CodenameOne_SRC.jar",
         "designer_1.jar",
-        "guibuilder_1.jar"
+        "guibuilder.jar"
     };
     
     private boolean checkAndDownloadFile(String url, String localVersion, String remoteVersion, 
@@ -94,7 +106,8 @@ public class UpdateCodenameOne {
                 destination.getParentFile().mkdirs();
             }
             URL u = new URL(url);
-            URLConnection con = u.openConnection();
+            HttpURLConnection con = (HttpURLConnection)u.openConnection();
+            con.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; U; Android 2.2; en-us; Nexus One Build/FRF91) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1");
             int length  = con.getContentLength();
             System.out.println("Downloading " + length + " bytes");
             byte[] data = new byte[length];
@@ -135,8 +148,10 @@ public class UpdateCodenameOne {
     
     private void fetchSystemLibraries(Properties updateStatus) throws Exception {
         URL updateVersions = new URL(BASE_URL + "UpdateStatus.properties");
+        HttpURLConnection con = (HttpURLConnection)updateVersions.openConnection();
+        con.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; U; Android 2.2; en-us; Nexus One Build/FRF91) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1");
         Properties serverUpdateStatus = new Properties();
-        try(InputStream is = updateVersions.openStream()) {
+        try(InputStream is = con.getInputStream()) {
             serverUpdateStatus.load(is);            
         }
         
@@ -220,6 +235,14 @@ public class UpdateCodenameOne {
                 updateFile = true;
             }
         }
+        
+        long lastSkinUpdate = Long.parseLong(updateStatus.getProperty("lastSkinUpdate", "0"));
+        if(lastSkinUpdate < System.currentTimeMillis() - DAY) {
+            updateSkins();
+            updateStatus.setProperty("lastSkinUpdate", "" + System.currentTimeMillis());
+            updateFile = true;
+        }
+        
         if(updateFile) {
             System.out.println("Updated project files");
             try(FileOutputStream fos = new FileOutputStream(projectUpdateProperties)) {
@@ -230,6 +253,50 @@ public class UpdateCodenameOne {
         }
     }
     
+    private void updateSkins() throws Exception {
+        URL skinXML = new URL(SKIN_XML_URL);
+        HttpURLConnection con = (HttpURLConnection)skinXML.openConnection();
+        con.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; U; Android 2.2; en-us; Nexus One Build/FRF91) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1");
+        Preferences pref = Preferences.userNodeForPackage(JavaSEPort.class);
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        Document d = null;
+        try(InputStream is = con.getInputStream()) {
+            d = db.parse(is);
+        }
+        NodeList skins = d.getElementsByTagName("Skin");
+        for (int i = 0; i < skins.getLength(); i++) {
+            Node skin = skins.item(i);
+            NamedNodeMap attr = skin.getAttributes();
+            String url = attr.getNamedItem("url").getNodeValue();
+            if(!new File(SKIN_DIR, url).exists()) {
+                continue;
+            }
+
+            int ver = 0;
+            Node n = attr.getNamedItem("version");
+            if(n != null){
+                ver = Integer.parseInt(n.getNodeValue());
+            }
+
+            int currentVersion = Integer.parseInt(pref.get(url, "0"));
+            if(currentVersion != ver) {
+                HttpURLConnection skinDownload = (HttpURLConnection)new URL(SKIN_BASE_URL + url).openConnection();
+                skinDownload.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; U; Android 2.2; en-us; Nexus One Build/FRF91) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1");
+                int length  = skinDownload.getContentLength();
+                System.out.println("Downloading skin " + url + " of " + length + " bytes");
+                byte[] data = new byte[length];
+                try(DataInputStream dis = new DataInputStream(skinDownload.getInputStream())) {
+                    dis.readFully(data);
+                }
+
+                try(FileOutputStream dos = new FileOutputStream(new File(SKIN_DIR, url))) {
+                    dos.write(data);
+                } 
+                pref.putInt(url, ver);
+            }
+        }
+    }
     
     /**
      * @param args the command line arguments

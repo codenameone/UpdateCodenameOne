@@ -50,7 +50,7 @@ import org.w3c.dom.NodeList;
  * @author Shai Almog
  */
 public class UpdateCodenameOne {
-    private final String UPDATER_VERSION = "1";
+    private final String UPDATER_VERSION = "2";
     
     private static final long DAY = 24 * 60 * 60000;
     private final File PROP_FILE = new File(System.getProperty("user.home") + File.separator + ".codenameone" + File.separator + "UpdateStatus.properties");
@@ -83,7 +83,7 @@ public class UpdateCodenameOne {
         BASE_URL + "CodeNameOneBuildClient.jar",
         BASE_URL + "CLDC11.jar",
         BASE_URL + "CodenameOne.jar",
-        BASE_URL + "CodenameOne_SRC.jar",
+        BASE_URL + "CodenameOne_SRC.zip",
         BASE_URL + "designer_1.jar",
         BASE_URL + "guibuilder.jar"
     };
@@ -93,7 +93,7 @@ public class UpdateCodenameOne {
         "CodeNameOneBuildClient.jar",
         "CLDC11.jar",
         "CodenameOne.jar",
-        "CodenameOne_SRC.jar",
+        "CodenameOne_SRC.zip",
         "designer_1.jar",
         "guibuilder.jar"
     };

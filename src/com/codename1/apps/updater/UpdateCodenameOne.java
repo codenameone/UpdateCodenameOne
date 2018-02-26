@@ -50,7 +50,7 @@ import org.w3c.dom.NodeList;
  * @author Shai Almog
  */
 public class UpdateCodenameOne {
-    private final String UPDATER_VERSION = "2";
+    private final String UPDATER_VERSION = "3";
     
     private static final long DAY = 24 * 60 * 60000;
     private final File PROP_FILE = new File(System.getProperty("user.home") + File.separator + ".codenameone" + File.separator + "UpdateStatus.properties");
@@ -62,14 +62,13 @@ public class UpdateCodenameOne {
     private static final String KEY_BUILD_CLIENT = "CodeNameOneBuildClientJar";
     private static final String KEY_CLDC = "CLDC11Jar";
     private static final String KEY_CODENAME_ONE_JAR = "CodenameOneJar";
-    private static final String KEY_CODENAME_ONE_SRC_JAR = "CodenameOne_SRCjar";
     
     private static final String[] KEYS = {
         KEY_JAVA_SE_JAR,
         KEY_BUILD_CLIENT,
         KEY_CLDC,
         KEY_CODENAME_ONE_JAR,
-        KEY_CODENAME_ONE_SRC_JAR,
+        "CodenameOne_SRCzip",
         "designer",
         "guiBuilder"
     };
@@ -215,15 +214,19 @@ public class UpdateCodenameOne {
             new File(projectPath, "CodeNameOneBuildClient.jar"),
             new File(projectPath, "lib" + File.separator + "CLDC11.jar"),
             new File(projectPath, "lib" + File.separator + "CodenameOne.jar"),
-            new File(projectPath, "lib" + File.separator + "CodenameOne_SRC.jar")
+            new File(projectPath, "lib" + File.separator + "CodenameOne_SRC.zip")
         };
         
         boolean updateFile = false;
         for(int iter = 0 ; iter < projectPaths.length ; iter++) {
             String updatedVersion = updateStatus.getProperty(KEYS[iter], "0");
             if(!projectVersions.getProperty(KEYS[iter], "0").equals(updatedVersion)) {
-                System.out.println("Updating the file: " + projectPaths[iter].getAbsolutePath());
                 File from = new File(PROP_FILE.getParentFile(), RELATIVE_PATHS[iter]);
+                if(!from.exists()) {
+                    System.out.println("File not found: " + projectPaths[iter].getAbsolutePath());
+                    continue;
+                }
+                System.out.println("Updating the file: " + projectPaths[iter].getAbsolutePath());
                 byte[] data = new byte[(int)from.length()];
                 try(DataInputStream dis = new DataInputStream(new FileInputStream(from))) {
                     dis.readFully(data);

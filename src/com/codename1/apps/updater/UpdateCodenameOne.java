@@ -50,7 +50,7 @@ import org.w3c.dom.NodeList;
  * @author Shai Almog
  */
 public class UpdateCodenameOne {
-    private final String UPDATER_VERSION = "3";
+    private final String UPDATER_VERSION = "4";
     
     private static final long DAY = 24 * 60 * 60000;
     private final File PROP_FILE = new File(System.getProperty("user.home") + File.separator + ".codenameone" + File.separator + "UpdateStatus.properties");

@@ -72,9 +72,9 @@
 
     -->
     <target name="release" depends="install">
-        <copy file="${dist.jar}" todir="/Users/shai/Dropbox/website/files/updates" />        
-
+        <!-- copy file="${dist.jar}" todir="/Users/shai/Dropbox/website/files/updates" / -->        
     </target>
+    
     <target name="install" depends="jar">
         <copy file="${dist.jar}"
             tofile="${workspace}/NBPlugin/CodenameOnePlugin/src/com/codename1/UpdateCodenameOne.jar" />
